@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>麻雀点数計算</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #101815;
+      --muted: #69746f;
+      --line: #dfe7e2;
+      --paper: #f7faf8;
+      --panel: #ffffff;
+      --green: #0f6b4d;
+      --green-2: #082b23;
+      --accent: #d14b3d;
+      --gold: #b68a38;
+      --blue: #315d8c;
+      --surface: rgba(255, 255, 255, .82);
+      --shadow: 0 18px 45px rgba(16, 24, 21, .08);
+      font-family: "Yu Gothic UI", "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(180deg, rgba(8, 43, 35, .08), transparent 320px),
+        linear-gradient(135deg, rgba(15, 107, 77, .08), transparent 42%),
+        #f1f5f2;
+      color: var(--ink);
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      background:
+        linear-gradient(135deg, #071f1a, #0d3f31 62%, #12352d);
+      color: #fff;
+      padding: 28px clamp(16px, 4vw, 44px);
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 46px 46px;
+      opacity: .34;
+      pointer-events: none;
+    }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(26px, 4vw, 42px);
+      letter-spacing: 0;
+      font-weight: 850;
+    }
+
+    .lead {
+      margin: 0;
+      color: rgba(255,255,255,.72);
+      line-height: 1.7;
+      max-width: 640px;
+    }
+
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(5, 42px);
+      gap: 8px;
+      filter: drop-shadow(0 18px 22px rgba(0,0,0,.22));
+    }
+
+    .tile {
+      width: 42px;
+      height: 54px;
+      border-radius: 6px;
+      background: linear-gradient(180deg, #fff, #f3f0e8);
+      color: var(--green-2);
+      display: grid;
+      place-items: center;
+      font-size: 25px;
+      font-weight: 800;
+      border: 1px solid rgba(18, 39, 31, .16);
+      box-shadow: inset 0 -5px 0 rgba(8, 43, 35, .08);
+    }
+
+    main {
+      width: min(1120px, calc(100% - 28px));
+      margin: 24px auto 44px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      padding: 6px;
+      border-radius: 8px;
+      box-shadow: 0 10px 28px rgba(16, 24, 21, .06);
+      backdrop-filter: blur(10px);
+    }
+
+    .tab {
+      border: 0;
+      border-radius: 6px;
+      padding: 12px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      min-height: 46px;
+      font-weight: 700;
+      transition: background .18s ease, color .18s ease, box-shadow .18s ease;
+    }
+
+    .tab.active {
+      background: #0f5f47;
+      color: #fff;
+      box-shadow: 0 10px 22px rgba(15, 95, 71, .22);
+    }
+
+    .view { display: none; }
+    .view.active { display: grid; gap: 18px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: clamp(14px, 2vw, 22px);
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 20px;
+      letter-spacing: 0;
+      font-weight: 850;
+    }
+
+    .players {
+      display: grid;
+      gap: 10px;
+    }
+
+    .player-row {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr .72fr;
+      gap: 10px;
+      align-items: end;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #fbfdfc, var(--paper));
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid #cedbd4;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 10px 11px;
+      min-height: 42px;
+      outline: none;
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(29, 107, 82, .14);
+    }
+
+    .settings {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .uma-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 6px;
+      min-height: 42px;
+      padding: 10px 14px;
+      cursor: pointer;
+      background: #0f5f47;
+      color: #fff;
+      font-weight: 750;
+      box-shadow: 0 10px 18px rgba(15, 95, 71, .16);
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    .btn:hover {
+      background: #0b523e;
+      box-shadow: 0 12px 24px rgba(15, 95, 71, .20);
+      transform: translateY(-1px);
+    }
+
+    .btn.secondary {
+      background: #fff;
+      color: var(--green-2);
+      border-color: var(--line);
+      box-shadow: none;
+    }
+
+    .btn.secondary:hover {
+      background: #f6faf7;
+      box-shadow: none;
+    }
+
+    .summary {
+      display: grid;
+      gap: 10px;
+    }
+
+    .result-card {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: linear-gradient(180deg, #fff, #f8fbf9);
+    }
+
+    .rank {
+      width: 38px;
+      height: 38px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      background: #e8f0eb;
+      color: var(--green-2);
+      font-weight: 700;
+    }
+
+    .rank.first {
+      background: rgba(182, 138, 56, .18);
+      color: #8b631b;
+    }
+
+    .name {
+      font-weight: 700;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    .total {
+      font-size: 22px;
+      font-weight: 800;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .plus { color: var(--green); }
+    .minus { color: var(--accent); }
+
+    .settle-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+
+    .settle-table th,
+    .settle-table td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 6px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .settle-table th,
+    .ledger-table th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .settle-table th:first-child,
+    .settle-table td:first-child {
+      text-align: left;
+      white-space: normal;
+    }
+
+    .round-tools {
+      display: grid;
+      grid-template-columns: minmax(140px, 1fr) auto auto;
+      gap: 10px;
+      align-items: end;
+      margin-top: 14px;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .history-header h2 {
+      margin: 0;
+    }
+
+    .history-wrap {
+      overflow-x: auto;
+    }
+
+    .ledger-table {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .ledger-table th,
+    .ledger-table td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .ledger-table th:first-child,
+    .ledger-table td:first-child {
+      text-align: left;
+    }
+
+    .ledger-table tfoot td {
+      font-weight: 800;
+      background: #f5faf7;
+    }
+
+    .empty-history {
+      border: 1px dashed #b9c8bf;
+      border-radius: 8px;
+      color: var(--muted);
+      padding: 18px;
+      text-align: center;
+      background: linear-gradient(180deg, #fff, var(--paper));
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 12px 0 0;
+    }
+
+    .hand-form,
+    .photo-score-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .hand-result {
+      display: grid;
+      gap: 12px;
+    }
+
+    .big-number {
+      font-size: clamp(34px, 6vw, 56px);
+      line-height: 1;
+      font-weight: 900;
+      color: var(--green-2);
+      letter-spacing: 0;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      border-radius: 999px;
+      padding: 7px 10px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .photo-preview {
+      display: grid;
+      place-items: center;
+      min-height: 260px;
+      border: 1px dashed #b9c8bf;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #fbfdfc, var(--paper));
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    .photo-preview img {
+      width: 100%;
+      max-height: 420px;
+      object-fit: contain;
+      display: none;
+    }
+
+    .photo-preview.has-image img {
+      display: block;
+    }
+
+    .photo-placeholder {
+      color: var(--muted);
+      text-align: center;
+      padding: 24px;
+      line-height: 1.7;
+    }
+
+    .photo-preview.has-image .photo-placeholder {
+      display: none;
+    }
+
+    .detected-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .detected-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: linear-gradient(180deg, #fff, var(--paper));
+    }
+
+    .detected-score {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--green-2);
+    }
+
+    .status {
+      border-left: 4px solid var(--blue);
+      background: #f5f8fb;
+      color: #2e4f78;
+      padding: 10px 12px;
+      border-radius: 6px;
+      line-height: 1.6;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 820px) {
+      .hero, .grid {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        padding-block: 22px;
+      }
+
+      .tiles {
+        grid-template-columns: repeat(5, 36px);
+      }
+
+      .tile {
+        width: 36px;
+        height: 47px;
+        font-size: 22px;
+      }
+
+      .player-row, .settings, .uma-grid, .hand-form, .photo-score-grid, .round-tools {
+        grid-template-columns: 1fr;
+      }
+
+      .result-card {
+        grid-template-columns: auto 1fr;
+      }
+
+      .total {
+        grid-column: 1 / -1;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="hero">
+        <div>
+          <h1>麻雀点数計算</h1>
+          <p class="lead">素点、順位、ウマ、オカをまとめて計算。半荘後の収支差まで一気に見られます。</p>
+        </div>
+        <div class="tiles" aria-hidden="true">
+          <span class="tile">一</span><span class="tile">二</span><span class="tile">三</span><span class="tile">東</span><span class="tile">發</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <nav class="tabs" aria-label="機能切替">
+        <button class="tab active" data-tab="settlement" type="button">順位・収支</button>
+        <button class="tab" data-tab="photo" type="button">写真入力</button>
+        <button class="tab" data-tab="hand" type="button">翻符支払い</button>
+      </nav>
+
+      <section class="view active" id="settlement">
+        <div class="grid">
+          <div class="panel">
+            <h2>対局結果</h2>
+            <div class="players" id="players"></div>
+
+            <div class="settings">
+              <label>配給原点
+                <input id="startScore" type="number" step="100" value="25000">
+              </label>
+              <label>返し点
+                <input id="returnScore" type="number" step="100" value="30000">
+              </label>
+              <label>順位入力
+                <select id="rankMode">
+                  <option value="auto">素点から自動</option>
+                  <option value="manual">手動で指定</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="uma-grid">
+              <label>1位ウマ
+                <input class="uma" data-rank="1" type="number" step="1" value="20">
+              </label>
+              <label>2位ウマ
+                <input class="uma" data-rank="2" type="number" step="1" value="10">
+              </label>
+              <label>3位ウマ
+                <input class="uma" data-rank="3" type="number" step="1" value="-10">
+              </label>
+              <label>4位ウマ
+                <input class="uma" data-rank="4" type="number" step="1" value="-20">
+              </label>
+            </div>
+
+            <div class="actions">
+              <button class="btn" id="calcSettlement" type="button">計算</button>
+              <button class="btn secondary" id="sample" type="button">サンプル入力</button>
+              <button class="btn secondary" id="reset" type="button">リセット</button>
+            </div>
+            <div class="round-tools">
+              <label>保存する局名
+                <input id="roundName" type="text" value="1局目">
+              </label>
+              <button class="btn" id="saveRound" type="button">この局を保存</button>
+              <button class="btn secondary" id="clearHistory" type="button">履歴クリア</button>
+            </div>
+            <p class="note">計算式: 最終pt = (素点 - 返し点) / 1000 + ウマ + トップ賞。トップ賞は (返し点 - 配給原点) × 4 / 1000 で自動計算します。</p>
+          </div>
+
+          <aside class="panel">
+            <h2>結果</h2>
+            <div class="summary" id="summary"></div>
+            <table class="settle-table" id="detailTable" aria-label="詳細結果"></table>
+          </aside>
+        </div>
+
+        <div class="panel">
+          <div class="history-header">
+            <h2>局ごとの履歴・累計</h2>
+            <span class="meta" id="historyCount">0局</span>
+          </div>
+          <div id="roundHistory"></div>
+        </div>
+      </section>
+
+      <section class="view" id="photo">
+        <div class="grid">
+          <div class="panel">
+            <h2>写真から点数入力</h2>
+            <label>スコア表の写真
+              <input id="scorePhoto" type="file" accept="image/*" capture="environment">
+            </label>
+            <div class="photo-preview" id="photoPreview">
+              <img id="photoImage" alt="選択したスコア写真">
+              <div class="photo-placeholder">スコア表やメモの写真を選ぶと、ここに表示されます。</div>
+            </div>
+            <div class="actions">
+              <button class="btn" id="detectScores" type="button">数字を検出</button>
+              <button class="btn secondary" id="applyPhotoScores" type="button">点数欄へ反映</button>
+            </div>
+            <p class="note">ブラウザに文字検出機能がある場合は写真から数字候補を拾います。未対応の環境では、写真を見ながら下の4つの欄へ入力してください。</p>
+          </div>
+
+          <aside class="panel">
+            <h2>読み取り候補</h2>
+            <div class="photo-score-grid">
+              <label>1人目
+                <input class="photo-score" data-index="0" type="number" step="100" placeholder="例: 34000">
+              </label>
+              <label>2人目
+                <input class="photo-score" data-index="1" type="number" step="100" placeholder="例: 28700">
+              </label>
+              <label>3人目
+                <input class="photo-score" data-index="2" type="number" step="100" placeholder="例: 21400">
+              </label>
+              <label>4人目
+                <input class="photo-score" data-index="3" type="number" step="100" placeholder="例: 25900">
+              </label>
+            </div>
+            <div id="photoStatus" class="status">写真を選ぶと、検出または手入力した点数を対局結果へ流し込めます。</div>
+            <div class="detected-list" id="detectedList"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="hand">
+        <div class="grid">
+          <div class="panel">
+            <h2>翻・符から支払い</h2>
+            <div class="hand-form">
+              <label>翻
+                <input id="han" type="number" min="1" max="13" value="3">
+              </label>
+              <label>符
+                <input id="fu" type="number" min="20" step="10" value="40">
+              </label>
+              <label>あがり
+                <select id="winType">
+                  <option value="ron">ロン</option>
+                  <option value="tsumo">ツモ</option>
+                </select>
+              </label>
+              <label>親子
+                <select id="seat">
+                  <option value="child">子</option>
+                  <option value="dealer">親</option>
+                </select>
+              </label>
+            </div>
+            <div class="actions">
+              <button class="btn" id="calcHand" type="button">支払い計算</button>
+            </div>
+            <div class="chips">
+              <span class="chip">満貫以上に対応</span>
+              <span class="chip">100点単位切り上げ</span>
+              <span class="chip">ツモは親/子支払い表示</span>
+            </div>
+          </div>
+
+          <aside class="panel">
+            <h2>支払い</h2>
+            <div class="hand-result" id="handResult"></div>
+            <p class="note">符計算そのものは含めていません。符が分かっている場面で、支払い額をすばやく確認するための簡易計算です。</p>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const defaultPlayers = [
+      { name: "東家", score: 34000, rank: 1 },
+      { name: "南家", score: 28700, rank: 2 },
+      { name: "西家", score: 21400, rank: 4 },
+      { name: "北家", score: 25900, rank: 3 }
+    ];
+
+    const playersEl = document.querySelector("#players");
+    const summaryEl = document.querySelector("#summary");
+    const detailTable = document.querySelector("#detailTable");
+    const rankMode = document.querySelector("#rankMode");
+    const scorePhoto = document.querySelector("#scorePhoto");
+    const photoPreview = document.querySelector("#photoPreview");
+    const photoImage = document.querySelector("#photoImage");
+    const photoStatus = document.querySelector("#photoStatus");
+    const detectedList = document.querySelector("#detectedList");
+    const roundNameInput = document.querySelector("#roundName");
+    const roundHistoryEl = document.querySelector("#roundHistory");
+    const historyCountEl = document.querySelector("#historyCount");
+    const historyStorageKey = "mahjong-score-round-history";
+    let currentResults = [];
+    let roundHistory = loadRoundHistory();
+
+    function yenRound(value) {
+      return Math.ceil(value / 100) * 100;
+    }
+
+    function signed(value, digits = 1) {
+      const fixed = Number(value).toFixed(digits);
+      return value > 0 ? `+${fixed}` : fixed;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function loadRoundHistory() {
+      try {
+        const raw = localStorage.getItem(historyStorageKey);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveRoundHistory() {
+      localStorage.setItem(historyStorageKey, JSON.stringify(roundHistory));
+    }
+
+    function nextRoundName() {
+      return `${roundHistory.length + 1}局目`;
+    }
+
+    function updateRoundName() {
+      roundNameInput.value = nextRoundName();
+    }
+
+    function renderPlayers(data = defaultPlayers) {
+      playersEl.innerHTML = "";
+      data.forEach((player, index) => {
+        const row = document.createElement("div");
+        row.className = "player-row";
+        row.innerHTML = `
+          <label>名前
+            <input class="player-name" data-index="${index}" value="${player.name}">
+          </label>
+          <label>素点
+            <input class="player-score" data-index="${index}" type="number" step="100" value="${player.score}">
+          </label>
+          <label>順位
+            <select class="player-rank" data-index="${index}">
+              ${[1, 2, 3, 4].map(rank => `<option value="${rank}" ${rank === player.rank ? "selected" : ""}>${rank}位</option>`).join("")}
+            </select>
+          </label>
+        `;
+        playersEl.appendChild(row);
+      });
+      syncRankInputs();
+    }
+
+    function syncRankInputs() {
+      const disabled = rankMode.value === "auto";
+      document.querySelectorAll(".player-rank").forEach(select => {
+        select.disabled = disabled;
+      });
+    }
+
+    function readPlayers() {
+      const names = [...document.querySelectorAll(".player-name")];
+      return names.map((nameInput, index) => ({
+        name: nameInput.value.trim() || `${index + 1}人目`,
+        score: Number(document.querySelectorAll(".player-score")[index].value || 0),
+        rank: Number(document.querySelectorAll(".player-rank")[index].value)
+      }));
+    }
+
+    function rankByScore(players) {
+      return [...players]
+        .sort((a, b) => b.score - a.score)
+        .map((player, index) => ({ ...player, rank: index + 1 }));
+    }
+
+    function getUma() {
+      const uma = {};
+      document.querySelectorAll(".uma").forEach(input => {
+        uma[Number(input.dataset.rank)] = Number(input.value || 0);
+      });
+      return uma;
+    }
+
+    function setPhotoStatus(message) {
+      photoStatus.textContent = message;
+    }
+
+    function normalizeScoreText(text) {
+      return text
+        .replace(/[０-９]/g, char => String.fromCharCode(char.charCodeAt(0) - 0xfee0))
+        .replace(/[,，.．\s]/g, "");
+    }
+
+    function extractScoreCandidates(text) {
+      const normalized = normalizeScoreText(text);
+      const matches = normalized.match(/\d{4,6}/g) || [];
+      const unique = [...new Set(matches.map(Number))]
+        .filter(score => score >= 1000 && score <= 99900)
+        .sort((a, b) => b - a);
+      return unique.slice(0, 8);
+    }
+
+    function fillPhotoScores(scores) {
+      document.querySelectorAll(".photo-score").forEach((input, index) => {
+        input.value = scores[index] || "";
+      });
+    }
+
+    function renderDetectedScores(scores) {
+      if (!scores.length) {
+        detectedList.innerHTML = "";
+        return;
+      }
+
+      detectedList.innerHTML = scores.map((score, index) => `
+        <div class="detected-item">
+          <div>
+            <div class="detected-score">${score.toLocaleString()}点</div>
+            <div class="meta">候補 ${index + 1}</div>
+          </div>
+          <button class="btn secondary use-detected" data-score="${score}" type="button">入力</button>
+        </div>
+      `).join("");
+    }
+
+    function renderRoundHistory() {
+      historyCountEl.textContent = `${roundHistory.length}局`;
+
+      if (!roundHistory.length) {
+        roundHistoryEl.innerHTML = `<div class="empty-history">まだ保存された局がありません。「この局を保存」で1局ずつ蓄積できます。</div>`;
+        return;
+      }
+
+      const names = readPlayers().map(player => player.name);
+      const totals = new Map(names.map(name => [name, 0]));
+      roundHistory.forEach(round => {
+        round.results.forEach(result => {
+          totals.set(result.name, (totals.get(result.name) || 0) + result.total);
+        });
+      });
+
+      roundHistoryEl.innerHTML = `
+        <div class="history-wrap">
+          <table class="ledger-table" aria-label="局ごとの履歴">
+            <thead>
+              <tr>
+                <th>局</th>
+                ${names.map(name => `<th>${escapeHtml(name)}</th>`).join("")}
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${roundHistory.map((round, index) => `
+                <tr>
+                  <td>${escapeHtml(round.name)}</td>
+                  ${names.map(name => {
+                    const result = round.results.find(item => item.name === name);
+                    const total = result ? result.total : 0;
+                    return `<td class="${total >= 0 ? "plus" : "minus"}">${signed(total)}</td>`;
+                  }).join("")}
+                  <td><button class="btn secondary delete-round" data-index="${index}" type="button">削除</button></td>
+                </tr>
+              `).join("")}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>累計</td>
+                ${names.map(name => {
+                  const total = totals.get(name) || 0;
+                  return `<td class="${total >= 0 ? "plus" : "minus"}">${signed(total)}</td>`;
+                }).join("")}
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      `;
+    }
+
+    function saveCurrentRound() {
+      calculateSettlement();
+
+      if (currentResults.length !== 4) return;
+
+      const name = roundNameInput.value.trim() || nextRoundName();
+      roundHistory.push({
+        name,
+        savedAt: new Date().toISOString(),
+        results: currentResults.map(result => ({
+          name: result.name,
+          score: result.score,
+          rank: result.rank,
+          base: result.base,
+          uma: result.uma,
+          prize: result.prize,
+          total: result.total
+        }))
+      });
+      saveRoundHistory();
+      renderRoundHistory();
+      updateRoundName();
+    }
+
+    function clearRoundHistory() {
+      roundHistory = [];
+      saveRoundHistory();
+      renderRoundHistory();
+      updateRoundName();
+    }
+
+    async function detectScoresFromPhoto() {
+      if (!photoImage.src) {
+        setPhotoStatus("先に写真を選んでください。");
+        return;
+      }
+
+      if (!("TextDetector" in window)) {
+        setPhotoStatus("このブラウザは写真内の文字検出に未対応です。写真を見ながら4つの点数を入力してください。");
+        return;
+      }
+
+      try {
+        setPhotoStatus("写真から数字を読み取っています。");
+        const detector = new TextDetector();
+        const bitmap = await createImageBitmap(photoImage);
+        const detected = await detector.detect(bitmap);
+        const text = detected.map(item => item.rawValue || "").join(" ");
+        const scores = extractScoreCandidates(text);
+        fillPhotoScores(scores.slice(0, 4));
+        renderDetectedScores(scores);
+        setPhotoStatus(scores.length ? `${scores.length}件の数字候補を検出しました。必要なら修正してから反映してください。` : "点数らしい数字を検出できませんでした。手入力で補正してください。");
+      } catch (error) {
+        setPhotoStatus("読み取り中に失敗しました。写真を見ながら手入力してください。");
+      }
+    }
+
+    function applyPhotoScores() {
+      const scores = [...document.querySelectorAll(".photo-score")]
+        .map(input => Number(input.value || 0))
+        .filter(score => score > 0);
+
+      if (scores.length !== 4) {
+        setPhotoStatus("4人分の点数を入力してから反映してください。");
+        return;
+      }
+
+      document.querySelectorAll(".player-score").forEach((input, index) => {
+        input.value = scores[index];
+      });
+      calculateSettlement();
+      document.querySelector('[data-tab="settlement"]').click();
+    }
+
+    function calculateSettlement() {
+      const start = Number(document.querySelector("#startScore").value || 0);
+      const returned = Number(document.querySelector("#returnScore").value || 0);
+      const topPrize = ((returned - start) * 4) / 1000;
+      const uma = getUma();
+      const source = readPlayers();
+      const ranked = rankMode.value === "auto" ? rankByScore(source) : [...source].sort((a, b) => a.rank - b.rank);
+      const manualRanks = new Set(source.map(player => player.rank));
+      const rankWarning = rankMode.value === "manual" && manualRanks.size !== 4;
+
+      const results = ranked.map(player => {
+        const base = (player.score - returned) / 1000;
+        const prize = player.rank === 1 ? topPrize : 0;
+        const total = base + (uma[player.rank] || 0) + prize;
+        return { ...player, base, prize, uma: uma[player.rank] || 0, total };
+      }).sort((a, b) => a.rank - b.rank);
+      currentResults = results;
+
+      summaryEl.innerHTML = results.map(player => `
+        <div class="result-card">
+          <div class="rank ${player.rank === 1 ? "first" : ""}">${player.rank}</div>
+          <div>
+            <div class="name">${player.name}</div>
+            <div class="meta">${player.score.toLocaleString()}点 / 素点差 ${signed(player.base)}pt</div>
+          </div>
+          <div class="total ${player.total >= 0 ? "plus" : "minus"}">${signed(player.total)}pt</div>
+        </div>
+      `).join("");
+
+      detailTable.innerHTML = `
+        <thead>
+          <tr><th>名前</th><th>素点</th><th>素点pt</th><th>ウマ</th><th>トップ賞</th><th>最終</th></tr>
+        </thead>
+        <tbody>
+          ${results.map(player => `
+            <tr>
+              <td>${player.rank}位 ${player.name}</td>
+              <td>${player.score.toLocaleString()}</td>
+              <td>${signed(player.base)}</td>
+              <td>${signed(player.uma)}</td>
+              <td>${signed(player.prize)}</td>
+              <td class="${player.total >= 0 ? "plus" : "minus"}"><strong>${signed(player.total)}</strong></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      `;
+
+      if (rankWarning) {
+        summaryEl.insertAdjacentHTML("afterbegin", `<p class="note">順位が重複しています。1位から4位までを一人ずつ指定してください。</p>`);
+      }
+
+      renderRoundHistory();
+      return results;
+    }
+
+    function limitBasePoints(han, fu) {
+      if (han >= 13) return { base: 8000, label: "数え役満" };
+      if (han >= 11) return { base: 6000, label: "三倍満" };
+      if (han >= 8) return { base: 4000, label: "倍満" };
+      if (han >= 6) return { base: 3000, label: "跳満" };
+      if (han >= 5) return { base: 2000, label: "満貫" };
+
+      const base = fu * Math.pow(2, han + 2);
+      if (base >= 2000) return { base: 2000, label: "満貫" };
+      return { base, label: `${han}翻${fu}符` };
+    }
+
+    function calculateHand() {
+      const han = Math.max(1, Number(document.querySelector("#han").value || 1));
+      const fuRaw = Math.max(20, Number(document.querySelector("#fu").value || 20));
+      const fu = fuRaw === 25 ? 25 : Math.ceil(fuRaw / 10) * 10;
+      const winType = document.querySelector("#winType").value;
+      const seat = document.querySelector("#seat").value;
+      const { base, label } = limitBasePoints(han, fu);
+      const resultEl = document.querySelector("#handResult");
+
+      if (winType === "ron") {
+        const points = yenRound(base * (seat === "dealer" ? 6 : 4));
+        resultEl.innerHTML = `
+          <div class="big-number">${points.toLocaleString()}点</div>
+          <div class="meta">${seat === "dealer" ? "親ロン" : "子ロン"} / ${label}</div>
+        `;
+        return;
+      }
+
+      if (seat === "dealer") {
+        const each = yenRound(base * 2);
+        resultEl.innerHTML = `
+          <div class="big-number">${each.toLocaleString()}点 オール</div>
+          <div class="meta">親ツモ / ${label}</div>
+        `;
+      } else {
+        const childPay = yenRound(base);
+        const dealerPay = yenRound(base * 2);
+        resultEl.innerHTML = `
+          <div class="big-number">${childPay.toLocaleString()} / ${dealerPay.toLocaleString()}点</div>
+          <div class="meta">子ツモ / 子 ${childPay.toLocaleString()}点、親 ${dealerPay.toLocaleString()}点 / ${label}</div>
+        `;
+      }
+    }
+
+    document.querySelectorAll(".tab").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(tab => tab.classList.remove("active"));
+        document.querySelectorAll(".view").forEach(view => view.classList.remove("active"));
+        button.classList.add("active");
+        document.querySelector(`#${button.dataset.tab}`).classList.add("active");
+      });
+    });
+
+    document.querySelector("#calcSettlement").addEventListener("click", calculateSettlement);
+    document.querySelector("#saveRound").addEventListener("click", saveCurrentRound);
+    document.querySelector("#clearHistory").addEventListener("click", clearRoundHistory);
+    roundHistoryEl.addEventListener("click", event => {
+      const button = event.target.closest(".delete-round");
+      if (!button) return;
+      roundHistory.splice(Number(button.dataset.index), 1);
+      saveRoundHistory();
+      renderRoundHistory();
+      updateRoundName();
+    });
+    document.querySelector("#calcHand").addEventListener("click", calculateHand);
+    document.querySelector("#detectScores").addEventListener("click", detectScoresFromPhoto);
+    document.querySelector("#applyPhotoScores").addEventListener("click", applyPhotoScores);
+    detectedList.addEventListener("click", event => {
+      const button = event.target.closest(".use-detected");
+      if (!button) return;
+      const emptyInput = [...document.querySelectorAll(".photo-score")].find(input => !input.value);
+      if (emptyInput) emptyInput.value = button.dataset.score;
+    });
+    scorePhoto.addEventListener("change", () => {
+      const file = scorePhoto.files && scorePhoto.files[0];
+      if (!file) return;
+      photoImage.src = URL.createObjectURL(file);
+      photoPreview.classList.add("has-image");
+      detectedList.innerHTML = "";
+      setPhotoStatus("写真を読み込みました。数字検出を試すか、下の点数欄へ入力してください。");
+    });
+    document.querySelector("#sample").addEventListener("click", () => {
+      renderPlayers(defaultPlayers);
+      calculateSettlement();
+    });
+    document.querySelector("#reset").addEventListener("click", () => {
+      renderPlayers([
+        { name: "東家", score: 25000, rank: 1 },
+        { name: "南家", score: 25000, rank: 2 },
+        { name: "西家", score: 25000, rank: 3 },
+        { name: "北家", score: 25000, rank: 4 }
+      ]);
+      calculateSettlement();
+    });
+    rankMode.addEventListener("change", syncRankInputs);
+
+    renderPlayers(defaultPlayers);
+    calculateSettlement();
+    calculateHand();
+    updateRoundName();
+  </script>
+</body>
+</html>
