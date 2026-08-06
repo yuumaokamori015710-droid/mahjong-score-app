@@ -120,7 +120,7 @@
 
     .tabs {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 8px;
       align-items: center;
       background: var(--surface);
@@ -652,6 +652,56 @@
       white-space: nowrap;
     }
 
+    .yaku-toolbar {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .yaku-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .yaku-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #fff, var(--paper));
+      padding: 12px;
+    }
+
+    .yaku-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .yaku-name {
+      color: var(--green-2);
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    .yaku-han {
+      color: #fff;
+      background: #0f5f47;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .yaku-desc {
+      color: var(--muted);
+      line-height: 1.6;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
     @media (max-width: 820px) {
       .hero, .grid {
         grid-template-columns: 1fr;
@@ -675,7 +725,7 @@
         grid-template-columns: 1fr;
       }
 
-      .tabs, .score-mode, .limit-list {
+      .tabs, .score-mode, .limit-list, .yaku-toolbar, .yaku-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -710,6 +760,7 @@
         <button class="tab" data-tab="photo" type="button">写真入力</button>
         <button class="tab" data-tab="chart" type="button">点数表</button>
         <button class="tab" data-tab="fuDetail" type="button">符計算</button>
+        <button class="tab" data-tab="yakuList" type="button">役一覧</button>
       </nav>
 
       <section class="view active" id="settlement">
@@ -958,6 +1009,21 @@
           </aside>
         </div>
       </section>
+
+      <section class="view" id="yakuList">
+        <div class="panel">
+          <h2>役一覧</h2>
+          <div class="yaku-toolbar" aria-label="役一覧切替">
+            <button class="mode-btn active" data-yaku-filter="all" type="button">全部</button>
+            <button class="mode-btn" data-yaku-filter="1" type="button">1翻</button>
+            <button class="mode-btn" data-yaku-filter="2" type="button">2翻</button>
+            <button class="mode-btn" data-yaku-filter="high" type="button">高打点</button>
+            <button class="mode-btn" data-yaku-filter="yakuman" type="button">役満</button>
+          </div>
+          <div class="yaku-grid" id="yakuGrid"></div>
+          <p class="note">ローカルルールで扱いが変わる役もあります。実戦中に見る前提で、よく使う役を中心にまとめています。</p>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -983,9 +1049,47 @@
     const historyCountEl = document.querySelector("#historyCount");
     const scoreChartEl = document.querySelector("#scoreChart");
     const fuResultEl = document.querySelector("#fuResult");
+    const yakuGridEl = document.querySelector("#yakuGrid");
     const historyStorageKey = "mahjong-score-round-history";
     let currentResults = [];
     let roundHistory = loadRoundHistory();
+
+    const yakuList = [
+      { name: "立直", han: "1翻", group: "1", desc: "門前でテンパイ宣言してアガる。" },
+      { name: "一発", han: "1翻", group: "1", desc: "立直後、次の自分のツモまでにアガる。鳴きが入ると消える。" },
+      { name: "門前清自摸和", han: "1翻", group: "1", desc: "門前でツモアガリ。" },
+      { name: "断么九", han: "1翻", group: "1", desc: "2から8だけで作る。1・9・字牌なし。" },
+      { name: "平和", han: "1翻", group: "1", desc: "順子4つ、役牌でない雀頭、両面待ち。" },
+      { name: "役牌", han: "1翻", group: "1", desc: "三元牌、自風、場風の刻子または槓子。" },
+      { name: "一盃口", han: "1翻", group: "1", desc: "門前で同じ順子を2組。" },
+      { name: "海底 / 河底", han: "1翻", group: "1", desc: "最後のツモ、または最後の捨て牌でアガる。" },
+      { name: "嶺上開花", han: "1翻", group: "1", desc: "カンの後の嶺上牌でツモアガリ。" },
+      { name: "槍槓", han: "1翻", group: "1", desc: "相手の加槓牌でロン。" },
+      { name: "七対子", han: "2翻", group: "2", desc: "対子7組。25符固定。" },
+      { name: "対々和", han: "2翻", group: "2", desc: "刻子または槓子を4組。" },
+      { name: "三色同順", han: "2翻", group: "2", desc: "3色で同じ数字の順子。鳴くと1翻。" },
+      { name: "一気通貫", han: "2翻", group: "2", desc: "同じ色で123・456・789。鳴くと1翻。" },
+      { name: "混全帯么九", han: "2翻", group: "2", desc: "全メンツに1・9・字牌が絡む。鳴くと1翻。" },
+      { name: "三暗刻", han: "2翻", group: "2", desc: "暗刻を3組。" },
+      { name: "三槓子", han: "2翻", group: "2", desc: "槓子を3組。" },
+      { name: "小三元", han: "2翻", group: "2", desc: "三元牌2組が刻子、残り1組が雀頭。" },
+      { name: "混老頭", han: "2翻", group: "2", desc: "1・9・字牌だけで作る。" },
+      { name: "二盃口", han: "3翻", group: "high", desc: "門前で一盃口を2組。" },
+      { name: "混一色", han: "3翻", group: "high", desc: "1種類の数牌と字牌だけ。鳴くと2翻。" },
+      { name: "純全帯么九", han: "3翻", group: "high", desc: "全メンツに1・9牌が絡み、字牌なし。鳴くと2翻。" },
+      { name: "清一色", han: "6翻", group: "high", desc: "1種類の数牌だけ。鳴くと5翻。" },
+      { name: "国士無双", han: "役満", group: "yakuman", desc: "13種の1・9・字牌を揃える。" },
+      { name: "四暗刻", han: "役満", group: "yakuman", desc: "暗刻を4組。" },
+      { name: "大三元", han: "役満", group: "yakuman", desc: "白・發・中をすべて刻子または槓子。" },
+      { name: "小四喜", han: "役満", group: "yakuman", desc: "風牌3組が刻子、残り1組が雀頭。" },
+      { name: "大四喜", han: "役満", group: "yakuman", desc: "東南西北をすべて刻子または槓子。" },
+      { name: "字一色", han: "役満", group: "yakuman", desc: "字牌だけで作る。" },
+      { name: "清老頭", han: "役満", group: "yakuman", desc: "1・9牌だけで作る。" },
+      { name: "緑一色", han: "役満", group: "yakuman", desc: "緑色の牌だけで作る。" },
+      { name: "九蓮宝燈", han: "役満", group: "yakuman", desc: "門前清一色の特殊形。" },
+      { name: "四槓子", han: "役満", group: "yakuman", desc: "槓子を4組。" },
+      { name: "天和 / 地和", han: "役満", group: "yakuman", desc: "親の配牌アガリ、または子の第一ツモアガリ。" }
+    ];
 
     function yenRound(value) {
       return Math.ceil(value / 100) * 100;
@@ -1504,6 +1608,19 @@
       `;
     }
 
+    function renderYakuList(filter = "all") {
+      const filtered = yakuList.filter(yaku => filter === "all" || yaku.group === filter);
+      yakuGridEl.innerHTML = filtered.map(yaku => `
+        <div class="yaku-card">
+          <div class="yaku-top">
+            <div class="yaku-name">${yaku.name}</div>
+            <div class="yaku-han">${yaku.han}</div>
+          </div>
+          <div class="yaku-desc">${yaku.desc}</div>
+        </div>
+      `).join("");
+    }
+
     document.querySelectorAll(".tab").forEach(button => {
       button.addEventListener("click", () => {
         document.querySelectorAll(".tab").forEach(tab => tab.classList.remove("active"));
@@ -1515,9 +1632,11 @@
 
     document.querySelectorAll(".mode-btn").forEach(button => {
       button.addEventListener("click", () => {
-        document.querySelectorAll(".mode-btn").forEach(item => item.classList.remove("active"));
+        const group = button.dataset.chartMode ? "[data-chart-mode]" : "[data-yaku-filter]";
+        document.querySelectorAll(`.mode-btn${group}`).forEach(item => item.classList.remove("active"));
         button.classList.add("active");
-        renderScoreChart(button.dataset.chartMode);
+        if (button.dataset.chartMode) renderScoreChart(button.dataset.chartMode);
+        if (button.dataset.yakuFilter) renderYakuList(button.dataset.yakuFilter);
       });
     });
 
@@ -1573,6 +1692,7 @@
     updateRoundName();
     renderScoreChart();
     calculateFuDetail();
+    renderYakuList();
   </script>
 </body>
 </html>
