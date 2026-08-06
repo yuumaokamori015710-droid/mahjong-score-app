@@ -702,6 +702,27 @@
       font-size: 13px;
     }
 
+    .chip-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .final-tools {
+      display: grid;
+      grid-template-columns: minmax(160px, .5fr) 1fr;
+      gap: 12px;
+      align-items: start;
+      margin-top: 14px;
+    }
+
+    .line-output {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
     @media (max-width: 820px) {
       .hero, .grid {
         grid-template-columns: 1fr;
@@ -721,7 +742,7 @@
         font-size: 22px;
       }
 
-      .player-row, .settings, .uma-grid, .hand-form, .photo-score-grid, .round-tools, .fu-grid, .meld-grid {
+      .player-row, .settings, .uma-grid, .hand-form, .photo-score-grid, .round-tools, .fu-grid, .meld-grid, .chip-grid, .final-tools {
         grid-template-columns: 1fr;
       }
 
@@ -827,6 +848,29 @@
             <span class="meta" id="historyCount">0局</span>
           </div>
           <div id="roundHistory"></div>
+        </div>
+
+        <div class="panel">
+          <div class="history-header">
+            <h2>チップ・LINE出力</h2>
+            <span class="meta">最後にまとめて集計</span>
+          </div>
+          <div class="chip-grid" id="chipInputs"></div>
+          <div class="final-tools">
+            <div>
+              <label>チップ単価
+                <input id="chipValue" type="number" min="0" step="1" value="0" placeholder="例: 100">
+              </label>
+              <div class="actions">
+                <button class="btn" id="makeLineSummary" type="button">LINE文を作成</button>
+                <button class="btn secondary" id="copyLineSummary" type="button">コピー</button>
+              </div>
+              <p class="note">チップは点数とは別に枚数で集計します。単価を入れるとチップ分の金額も出します。</p>
+            </div>
+            <label>LINEに貼る結果
+              <textarea id="lineSummary" class="line-output" readonly></textarea>
+            </label>
+          </div>
         </div>
       </section>
 
@@ -1050,9 +1094,14 @@
     const scoreChartEl = document.querySelector("#scoreChart");
     const fuResultEl = document.querySelector("#fuResult");
     const yakuGridEl = document.querySelector("#yakuGrid");
+    const chipInputsEl = document.querySelector("#chipInputs");
+    const chipValueInput = document.querySelector("#chipValue");
+    const lineSummaryEl = document.querySelector("#lineSummary");
     const historyStorageKey = "mahjong-score-round-history";
+    const chipStorageKey = "mahjong-score-chip-counts";
     let currentResults = [];
     let roundHistory = loadRoundHistory();
+    let chipCounts = loadChipCounts();
 
     const yakuList = [
       { name: "立直", han: "1翻", group: "1", desc: "門前でテンパイ宣言してアガる。" },
@@ -1120,8 +1169,22 @@
       }
     }
 
+    function loadChipCounts() {
+      try {
+        const raw = localStorage.getItem(chipStorageKey);
+        const parsed = raw ? JSON.parse(raw) : [0, 0, 0, 0];
+        return Array.isArray(parsed) ? parsed.slice(0, 4) : [0, 0, 0, 0];
+      } catch (error) {
+        return [0, 0, 0, 0];
+      }
+    }
+
     function saveRoundHistory() {
       localStorage.setItem(historyStorageKey, JSON.stringify(roundHistory));
+    }
+
+    function saveChipCounts() {
+      localStorage.setItem(chipStorageKey, JSON.stringify(chipCounts));
     }
 
     function nextRoundName() {
@@ -1153,6 +1216,7 @@
         playersEl.appendChild(row);
       });
       syncRankInputs();
+      renderChipInputs();
     }
 
     function syncRankInputs() {
@@ -1279,6 +1343,82 @@
           </table>
         </div>
       `;
+      updateLineSummary();
+    }
+
+    function renderChipInputs() {
+      const players = readPlayers();
+      while (chipCounts.length < 4) chipCounts.push(0);
+      chipInputsEl.innerHTML = players.map((player, index) => `
+        <label>${escapeHtml(player.name)}のチップ
+          <input class="chip-count" data-index="${index}" type="number" step="1" value="${Number(chipCounts[index] || 0)}">
+        </label>
+      `).join("");
+    }
+
+    function readChipCounts() {
+      chipCounts = [...document.querySelectorAll(".chip-count")].map(input => Number(input.value || 0));
+      saveChipCounts();
+      return chipCounts;
+    }
+
+    function aggregateFinalRows() {
+      const players = readPlayers();
+      const totals = new Map(players.map(player => [player.name, 0]));
+
+      if (roundHistory.length) {
+        roundHistory.forEach(round => {
+          round.results.forEach(result => {
+            totals.set(result.name, (totals.get(result.name) || 0) + result.total);
+          });
+        });
+      } else {
+        currentResults.forEach(result => {
+          totals.set(result.name, result.total);
+        });
+      }
+
+      const chips = readChipCounts();
+      const chipValue = Number(chipValueInput.value || 0);
+      return players.map((player, index) => ({
+        name: player.name,
+        pointTotal: totals.get(player.name) || 0,
+        chips: chips[index] || 0,
+        chipAmount: (chips[index] || 0) * chipValue
+      })).sort((a, b) => b.pointTotal - a.pointTotal);
+    }
+
+    function buildLineSummary() {
+      const rows = aggregateFinalRows();
+      const chipValue = Number(chipValueInput.value || 0);
+      const sourceLabel = roundHistory.length ? `${roundHistory.length}局集計` : "最終点数集計";
+      const lines = [
+        `麻雀結果 (${sourceLabel})`,
+        ...rows.map((row, index) => {
+          const chipText = `チップ ${row.chips >= 0 ? "+" : ""}${row.chips}枚`;
+          const amountText = chipValue ? ` / ${row.chipAmount >= 0 ? "+" : ""}${row.chipAmount.toLocaleString()}円` : "";
+          return `${index + 1}位 ${row.name}: ${signed(row.pointTotal)}pt / ${chipText}${amountText}`;
+        })
+      ];
+
+      if (chipValue) lines.push(`チップ単価: ${chipValue.toLocaleString()}円`);
+      return lines.join("\n");
+    }
+
+    function updateLineSummary() {
+      if (!lineSummaryEl) return;
+      lineSummaryEl.value = buildLineSummary();
+    }
+
+    async function copyLineSummary() {
+      updateLineSummary();
+      try {
+        await navigator.clipboard.writeText(lineSummaryEl.value);
+      } catch (error) {
+        lineSummaryEl.focus();
+        lineSummaryEl.select();
+        document.execCommand("copy");
+      }
     }
 
     function saveCurrentRound() {
@@ -1303,6 +1443,7 @@
       saveRoundHistory();
       renderRoundHistory();
       updateRoundName();
+      updateLineSummary();
     }
 
     function clearRoundHistory() {
@@ -1310,6 +1451,7 @@
       saveRoundHistory();
       renderRoundHistory();
       updateRoundName();
+      updateLineSummary();
     }
 
     async function detectScoresFromPhoto() {
@@ -1372,6 +1514,7 @@
         return { ...player, base, prize, uma: uma[player.rank] || 0, total };
       }).sort((a, b) => a.rank - b.rank);
       currentResults = results;
+      renderChipInputs();
 
       summaryEl.innerHTML = results.map(player => `
         <div class="result-card">
@@ -1407,6 +1550,7 @@
       }
 
       renderRoundHistory();
+      updateLineSummary();
       return results;
     }
 
@@ -1643,6 +1787,14 @@
     document.querySelector("#calcSettlement").addEventListener("click", calculateSettlement);
     document.querySelector("#saveRound").addEventListener("click", saveCurrentRound);
     document.querySelector("#clearHistory").addEventListener("click", clearRoundHistory);
+    document.querySelector("#makeLineSummary").addEventListener("click", updateLineSummary);
+    document.querySelector("#copyLineSummary").addEventListener("click", copyLineSummary);
+    chipValueInput.addEventListener("input", updateLineSummary);
+    chipInputsEl.addEventListener("input", event => {
+      if (!event.target.classList.contains("chip-count")) return;
+      readChipCounts();
+      updateLineSummary();
+    });
     roundHistoryEl.addEventListener("click", event => {
       const button = event.target.closest(".delete-round");
       if (!button) return;
@@ -1650,6 +1802,7 @@
       saveRoundHistory();
       renderRoundHistory();
       updateRoundName();
+      updateLineSummary();
     });
     document.querySelector("#calcFu").addEventListener("click", calculateFuDetail);
     document.querySelectorAll("#fuSpecial, #fuWin, #fuHead, #fuWait, #fuDetailHan, #fuDetailSeat, .fu-meld").forEach(input => {
@@ -1693,6 +1846,7 @@
     renderScoreChart();
     calculateFuDetail();
     renderYakuList();
+    updateLineSummary();
   </script>
 </body>
 </html>
