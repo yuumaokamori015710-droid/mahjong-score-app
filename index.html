@@ -675,6 +675,51 @@
       white-space: nowrap;
     }
 
+    .fu-table-wrap {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .fu-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 13px;
+    }
+
+    .fu-table caption {
+      text-align: left;
+      color: var(--green-2);
+      font-weight: 850;
+      margin-bottom: 6px;
+    }
+
+    .fu-table th,
+    .fu-table td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px 6px;
+      text-align: left;
+      line-height: 1.45;
+      vertical-align: top;
+    }
+
+    .fu-table th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      background: #f8fbf9;
+    }
+
+    .fu-table th:last-child,
+    .fu-table td:last-child {
+      width: 58px;
+      text-align: right;
+      color: var(--green-2);
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
     .yaku-toolbar {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1141,6 +1186,39 @@
             <h2>符の内訳</h2>
             <div class="fu-result" id="fuResult"></div>
             <p class="note">基本は20符から足して、最後に10符単位へ切り上げます。平和ツモと七対子は固定符として扱います。</p>
+            <div class="fu-table-wrap">
+              <table class="fu-table" aria-label="符計算の基本表">
+                <caption>基本・アガリ方</caption>
+                <thead>
+                  <tr><th>項目</th><th>符</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>副底</td><td>20</td></tr>
+                  <tr><td>門前ロン</td><td>+10</td></tr>
+                  <tr><td>ツモ</td><td>+2</td></tr>
+                  <tr><td>鳴きロン</td><td>+0</td></tr>
+                  <tr><td>平和ツモ</td><td>20固定</td></tr>
+                  <tr><td>七対子</td><td>25固定</td></tr>
+                </tbody>
+              </table>
+
+              <table class="fu-table" aria-label="雀頭・待ち・面子の符表">
+                <caption>雀頭・待ち・面子</caption>
+                <thead>
+                  <tr><th>項目</th><th>符</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>役牌の雀頭</td><td>+2</td></tr>
+                  <tr><td>連風牌の雀頭</td><td>+4</td></tr>
+                  <tr><td>単騎・カンチャン・ペンチャン</td><td>+2</td></tr>
+                  <tr><td>明刻 2-8</td><td>+2</td></tr>
+                  <tr><td>明刻 1/9/字・暗刻 2-8</td><td>+4</td></tr>
+                  <tr><td>暗刻 1/9/字・明槓 2-8</td><td>+8</td></tr>
+                  <tr><td>明槓 1/9/字・暗槓 2-8</td><td>+16</td></tr>
+                  <tr><td>暗槓 1/9/字</td><td>+32</td></tr>
+                </tbody>
+              </table>
+            </div>
           </aside>
         </div>
       </section>
