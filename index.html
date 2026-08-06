@@ -606,6 +606,52 @@
       margin-top: 4px;
     }
 
+    .fu-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .fu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .meld-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .fu-result {
+      display: grid;
+      gap: 10px;
+    }
+
+    .fu-breakdown {
+      display: grid;
+      gap: 8px;
+    }
+
+    .fu-line {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding: 8px 0;
+    }
+
+    .fu-line:last-child {
+      border-bottom: 0;
+    }
+
+    .fu-points {
+      color: var(--green-2);
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
     @media (max-width: 820px) {
       .hero, .grid {
         grid-template-columns: 1fr;
@@ -625,7 +671,7 @@
         font-size: 22px;
       }
 
-      .player-row, .settings, .uma-grid, .hand-form, .photo-score-grid, .round-tools {
+      .player-row, .settings, .uma-grid, .hand-form, .photo-score-grid, .round-tools, .fu-grid, .meld-grid {
         grid-template-columns: 1fr;
       }
 
@@ -662,8 +708,8 @@
       <nav class="tabs" aria-label="機能切替">
         <button class="tab active" data-tab="settlement" type="button">順位・収支</button>
         <button class="tab" data-tab="photo" type="button">写真入力</button>
-        <button class="tab" data-tab="hand" type="button">翻符支払い</button>
         <button class="tab" data-tab="chart" type="button">点数表</button>
+        <button class="tab" data-tab="fuDetail" type="button">符計算</button>
       </nav>
 
       <section class="view active" id="settlement">
@@ -773,48 +819,6 @@
         </div>
       </section>
 
-      <section class="view" id="hand">
-        <div class="grid">
-          <div class="panel">
-            <h2>翻・符から支払い</h2>
-            <div class="hand-form">
-              <label>翻
-                <input id="han" type="number" min="1" max="13" value="3">
-              </label>
-              <label>符
-                <input id="fu" type="number" min="20" step="10" value="40">
-              </label>
-              <label>あがり
-                <select id="winType">
-                  <option value="ron">ロン</option>
-                  <option value="tsumo">ツモ</option>
-                </select>
-              </label>
-              <label>親子
-                <select id="seat">
-                  <option value="child">子</option>
-                  <option value="dealer">親</option>
-                </select>
-              </label>
-            </div>
-            <div class="actions">
-              <button class="btn" id="calcHand" type="button">支払い計算</button>
-            </div>
-            <div class="chips">
-              <span class="chip">満貫以上に対応</span>
-              <span class="chip">100点単位切り上げ</span>
-              <span class="chip">ツモは親/子支払い表示</span>
-            </div>
-          </div>
-
-          <aside class="panel">
-            <h2>支払い</h2>
-            <div class="hand-result" id="handResult"></div>
-            <p class="note">符計算そのものは含めていません。符が分かっている場面で、支払い額をすばやく確認するための簡易計算です。</p>
-          </aside>
-        </div>
-      </section>
-
       <section class="view" id="chart">
         <div class="panel">
           <h2>点数早見表</h2>
@@ -850,6 +854,110 @@
           </div>
         </div>
       </section>
+
+      <section class="view" id="fuDetail">
+        <div class="grid">
+          <div class="panel">
+            <h2>符計算の詳細</h2>
+            <div class="fu-form">
+              <div class="fu-grid">
+                <label>例外
+                  <select id="fuSpecial">
+                    <option value="none">通常手</option>
+                    <option value="pinfu-tsumo">平和ツモ 20符固定</option>
+                    <option value="chiitoi">七対子 25符固定</option>
+                  </select>
+                </label>
+                <label>アガリ方
+                  <select id="fuWin">
+                    <option value="menzen-ron">門前ロン +10</option>
+                    <option value="tsumo">ツモ +2</option>
+                    <option value="open-ron">鳴きロン +0</option>
+                  </select>
+                </label>
+                <label>雀頭
+                  <select id="fuHead">
+                    <option value="0">普通の雀頭 +0</option>
+                    <option value="2">役牌の雀頭 +2</option>
+                    <option value="4">連風牌の雀頭 +4</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="fu-grid">
+                <label>待ち
+                  <select id="fuWait">
+                    <option value="0">両面・シャンポン +0</option>
+                    <option value="2">単騎・カンチャン・ペンチャン +2</option>
+                  </select>
+                </label>
+                <label>翻へ反映
+                  <input id="fuDetailHan" type="number" min="1" max="13" value="3">
+                </label>
+                <label>親子
+                  <select id="fuDetailSeat">
+                    <option value="child">子</option>
+                    <option value="dealer">親</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="meld-grid">
+                <label>面子1
+                  <select class="fu-meld">
+                    <option value="0">順子 / なし +0</option>
+                    <option value="2">明刻 2-8 +2</option>
+                    <option value="4">明刻 1・9・字 / 暗刻 2-8 +4</option>
+                    <option value="8">暗刻 1・9・字 / 明槓 2-8 +8</option>
+                    <option value="16">明槓 1・9・字 / 暗槓 2-8 +16</option>
+                    <option value="32">暗槓 1・9・字 +32</option>
+                  </select>
+                </label>
+                <label>面子2
+                  <select class="fu-meld">
+                    <option value="0">順子 / なし +0</option>
+                    <option value="2">明刻 2-8 +2</option>
+                    <option value="4">明刻 1・9・字 / 暗刻 2-8 +4</option>
+                    <option value="8">暗刻 1・9・字 / 明槓 2-8 +8</option>
+                    <option value="16">明槓 1・9・字 / 暗槓 2-8 +16</option>
+                    <option value="32">暗槓 1・9・字 +32</option>
+                  </select>
+                </label>
+                <label>面子3
+                  <select class="fu-meld">
+                    <option value="0">順子 / なし +0</option>
+                    <option value="2">明刻 2-8 +2</option>
+                    <option value="4">明刻 1・9・字 / 暗刻 2-8 +4</option>
+                    <option value="8">暗刻 1・9・字 / 明槓 2-8 +8</option>
+                    <option value="16">明槓 1・9・字 / 暗槓 2-8 +16</option>
+                    <option value="32">暗槓 1・9・字 +32</option>
+                  </select>
+                </label>
+                <label>面子4
+                  <select class="fu-meld">
+                    <option value="0">順子 / なし +0</option>
+                    <option value="2">明刻 2-8 +2</option>
+                    <option value="4">明刻 1・9・字 / 暗刻 2-8 +4</option>
+                    <option value="8">暗刻 1・9・字 / 明槓 2-8 +8</option>
+                    <option value="16">明槓 1・9・字 / 暗槓 2-8 +16</option>
+                    <option value="32">暗槓 1・9・字 +32</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="actions">
+                <button class="btn" id="calcFu" type="button">符を計算</button>
+              </div>
+            </div>
+          </div>
+
+          <aside class="panel">
+            <h2>符の内訳</h2>
+            <div class="fu-result" id="fuResult"></div>
+            <p class="note">基本は20符から足して、最後に10符単位へ切り上げます。平和ツモと七対子は固定符として扱います。</p>
+          </aside>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -874,6 +982,7 @@
     const roundHistoryEl = document.querySelector("#roundHistory");
     const historyCountEl = document.querySelector("#historyCount");
     const scoreChartEl = document.querySelector("#scoreChart");
+    const fuResultEl = document.querySelector("#fuResult");
     const historyStorageKey = "mahjong-score-round-history";
     let currentResults = [];
     let roundHistory = loadRoundHistory();
@@ -1243,6 +1352,99 @@
       }
     }
 
+    function paymentText(han, fu, seat, winType) {
+      const { base, label } = limitBasePoints(han, fu);
+
+      if (winType === "ron") {
+        const points = yenRound(base * (seat === "dealer" ? 6 : 4));
+        return {
+          label,
+          text: `${points.toLocaleString()}点`,
+          detail: `${seat === "dealer" ? "親ロン" : "子ロン"} / ${label}`
+        };
+      }
+
+      if (seat === "dealer") {
+        const each = yenRound(base * 2);
+        return {
+          label,
+          text: `${each.toLocaleString()}点 オール`,
+          detail: `親ツモ / ${label}`
+        };
+      }
+
+      const childPay = yenRound(base);
+      const dealerPay = yenRound(base * 2);
+      return {
+        label,
+        text: `${childPay.toLocaleString()} / ${dealerPay.toLocaleString()}点`,
+        detail: `子ツモ / 子 ${childPay.toLocaleString()}点、親 ${dealerPay.toLocaleString()}点 / ${label}`
+      };
+    }
+
+    function calculateFuDetail() {
+      const special = document.querySelector("#fuSpecial").value;
+      const han = Math.max(1, Number(document.querySelector("#fuDetailHan").value || 1));
+      const seat = document.querySelector("#fuDetailSeat").value;
+      const fuWin = document.querySelector("#fuWin").value;
+      const winType = fuWin === "tsumo" ? "tsumo" : "ron";
+      const lines = [];
+      let total = 20;
+      let finalFu = 20;
+
+      if (special === "pinfu-tsumo") {
+        finalFu = 20;
+        lines.push({ name: "平和ツモ固定", points: 20 });
+      } else if (special === "chiitoi") {
+        finalFu = 25;
+        lines.push({ name: "七対子固定", points: 25 });
+      } else {
+        lines.push({ name: "基本符", points: 20 });
+
+        const winPoints = fuWin === "menzen-ron" ? 10 : fuWin === "tsumo" ? 2 : 0;
+        const winLabel = fuWin === "menzen-ron" ? "門前ロン" : fuWin === "tsumo" ? "ツモ" : "鳴きロン";
+        total += winPoints;
+        lines.push({ name: winLabel, points: winPoints });
+
+        const headPoints = Number(document.querySelector("#fuHead").value || 0);
+        total += headPoints;
+        lines.push({ name: "雀頭", points: headPoints });
+
+        const waitPoints = Number(document.querySelector("#fuWait").value || 0);
+        total += waitPoints;
+        lines.push({ name: "待ち", points: waitPoints });
+
+        document.querySelectorAll(".fu-meld").forEach((select, index) => {
+          const points = Number(select.value || 0);
+          total += points;
+          if (points > 0) lines.push({ name: `面子${index + 1}`, points });
+        });
+
+        finalFu = Math.ceil(total / 10) * 10;
+      }
+
+      const payment = paymentText(han, finalFu, seat, winType);
+      fuResultEl.innerHTML = `
+        <div class="big-number">${finalFu}符</div>
+        <div class="meta">${special === "none" ? `${total}符を切り上げ` : "固定符"}</div>
+        <div class="fu-breakdown">
+          ${lines.map(line => `
+            <div class="fu-line">
+              <span>${line.name}</span>
+              <span class="fu-points">+${line.points}符</span>
+            </div>
+          `).join("")}
+        </div>
+        <div class="result-card">
+          <div class="rank first">${han}</div>
+          <div>
+            <div class="name">${payment.text}</div>
+            <div class="meta">${payment.detail}</div>
+          </div>
+        </div>
+      `;
+    }
+
     function scorePayment(han, fu, mode) {
       const [seat, winType] = mode.split("-");
       const { base, label } = limitBasePoints(han, fu);
@@ -1330,7 +1532,11 @@
       renderRoundHistory();
       updateRoundName();
     });
-    document.querySelector("#calcHand").addEventListener("click", calculateHand);
+    document.querySelector("#calcFu").addEventListener("click", calculateFuDetail);
+    document.querySelectorAll("#fuSpecial, #fuWin, #fuHead, #fuWait, #fuDetailHan, #fuDetailSeat, .fu-meld").forEach(input => {
+      input.addEventListener("change", calculateFuDetail);
+      input.addEventListener("input", calculateFuDetail);
+    });
     document.querySelector("#detectScores").addEventListener("click", detectScoresFromPhoto);
     document.querySelector("#applyPhotoScores").addEventListener("click", applyPhotoScores);
     detectedList.addEventListener("click", event => {
@@ -1364,9 +1570,9 @@
 
     renderPlayers(defaultPlayers);
     calculateSettlement();
-    calculateHand();
     updateRoundName();
     renderScoreChart();
+    calculateFuDetail();
   </script>
 </body>
 </html>
