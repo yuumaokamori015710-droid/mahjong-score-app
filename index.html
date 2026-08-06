@@ -825,7 +825,7 @@
             <button class="mode-btn" data-chart-mode="dealer-tsumo" type="button">親ツモ</button>
           </div>
           <div class="score-chart-wrap" id="scoreChart"></div>
-          <p class="note">20符・25符など一部の組み合わせは実戦では限定的です。満貫以上は下の一覧で確認できます。</p>
+          <p class="note">実戦ではまず30符・40符・50符を見れば十分です。20符は平和ツモ、25符は七対子の例外として残しています。</p>
           <div class="limit-list">
             <div class="limit-item">
               <div class="limit-name">満貫</div>
@@ -1259,8 +1259,21 @@
       return `${yenRound(base).toLocaleString()} / ${yenRound(base * 2).toLocaleString()}点`;
     }
 
+    function practicalScorePayment(row, han, mode) {
+      const isRon = mode.endsWith("-ron");
+      if (row.fu === 20 && (isRon || han === 1)) return "ー";
+      if (row.fu === 25 && han === 1) return "ー";
+      return scorePayment(han, row.fu, mode);
+    }
+
     function renderScoreChart(mode = "child-ron") {
-      const fuList = [20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110];
+      const practicalRows = [
+        { fu: 20, label: "平和ツモ 20符" },
+        { fu: 25, label: "七対子 25符" },
+        { fu: 30, label: "よくある 30符" },
+        { fu: 40, label: "少し符あり 40符" },
+        { fu: 50, label: "高めの基本 50符" }
+      ];
       const hanList = [1, 2, 3, 4];
       const modeLabel = {
         "child-ron": "子ロン",
@@ -1278,10 +1291,10 @@
             </tr>
           </thead>
           <tbody>
-            ${fuList.map(fu => `
+            ${practicalRows.map(row => `
               <tr>
-                <td>${fu}符</td>
-                ${hanList.map(han => `<td>${scorePayment(han, fu, mode)}</td>`).join("")}
+                <td>${row.label}</td>
+                ${hanList.map(han => `<td>${practicalScorePayment(row, han, mode)}</td>`).join("")}
               </tr>
             `).join("")}
           </tbody>
