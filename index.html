@@ -187,7 +187,7 @@
 
     .player-row {
       display: grid;
-      grid-template-columns: 1.1fr .9fr .72fr;
+      grid-template-columns: 1.15fr .85fr;
       gap: 10px;
       align-items: end;
       padding: 12px;
@@ -222,7 +222,7 @@
 
     .settings {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
       margin-top: 14px;
     }
@@ -272,6 +272,19 @@
       box-shadow: none;
     }
 
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2.3;
+    }
+
     .summary {
       display: grid;
       gap: 10px;
@@ -289,8 +302,8 @@
     }
 
     .rank {
-      width: 38px;
-      height: 38px;
+      width: 34px;
+      height: 34px;
       border-radius: 6px;
       display: grid;
       place-items: center;
@@ -317,7 +330,7 @@
     }
 
     .total {
-      font-size: 22px;
+      font-size: 21px;
       font-weight: 800;
       text-align: right;
       white-space: nowrap;
@@ -372,6 +385,14 @@
 
     .history-header h2 {
       margin: 0;
+    }
+
+    .history-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .history-wrap {
@@ -547,14 +568,14 @@
     }
 
     .score-chart-wrap {
-      overflow-x: auto;
+      overflow-x: visible;
     }
 
     .score-chart {
       width: 100%;
-      min-width: 720px;
       border-collapse: collapse;
       font-size: 14px;
+      table-layout: fixed;
     }
 
     .score-chart th,
@@ -562,7 +583,8 @@
       border-bottom: 1px solid var(--line);
       padding: 11px 10px;
       text-align: right;
-      white-space: nowrap;
+      white-space: normal;
+      line-height: 1.35;
     }
 
     .score-chart th:first-child,
@@ -570,6 +592,7 @@
       text-align: left;
       font-weight: 800;
       color: var(--green-2);
+      width: 26%;
     }
 
     .score-chart th {
@@ -710,9 +733,13 @@
 
     .final-tools {
       display: grid;
-      grid-template-columns: minmax(160px, .5fr) 1fr;
+      grid-template-columns: 1fr;
       gap: 12px;
       align-items: start;
+      margin-top: 14px;
+    }
+
+    .line-summary-label {
       margin-top: 14px;
     }
 
@@ -742,21 +769,83 @@
         font-size: 22px;
       }
 
-      .player-row, .settings, .uma-grid, .hand-form, .photo-score-grid, .round-tools, .fu-grid, .meld-grid, .chip-grid, .final-tools {
+      .settings, .uma-grid, .hand-form, .photo-score-grid, .round-tools, .fu-grid, .meld-grid, .chip-grid, .final-tools {
         grid-template-columns: 1fr;
       }
 
-      .tabs, .score-mode, .limit-list, .yaku-toolbar, .yaku-grid {
+      .players, .summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .player-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 10px;
+      }
+
+      .score-mode, .limit-list, .yaku-toolbar, .yaku-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      main {
+        width: min(100% - 16px, 1120px);
+        margin-top: 12px;
+        gap: 12px;
+      }
+
+      .tabs {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 4px;
+        padding: 4px;
+        min-height: 44px;
+      }
+
+      .tab {
+        height: 36px;
+        min-height: 36px;
+        max-height: 36px;
+        padding: 4px 2px;
+        font-size: 11px;
+        line-height: 1.15;
+      }
+
+      .score-chart {
+        font-size: 11px;
+      }
+
+      .score-chart th,
+      .score-chart td {
+        padding: 8px 3px;
+      }
+
+      .score-chart th:first-child,
+      .score-chart td:first-child {
+        width: 22%;
+      }
+
       .result-card {
-        grid-template-columns: auto 1fr;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 8px;
+        padding: 10px;
+        align-items: start;
+      }
+
+      .result-card .rank {
+        width: 30px;
+        height: 30px;
+        font-size: 13px;
+      }
+
+      .result-card .meta {
+        font-size: 12px;
+        line-height: 1.45;
       }
 
       .total {
         grid-column: 1 / -1;
-        text-align: left;
+        text-align: right;
+        font-size: 19px;
       }
     }
   </style>
@@ -796,12 +885,6 @@
               </label>
               <label>返し点
                 <input id="returnScore" type="number" step="100" value="30000">
-              </label>
-              <label>順位入力
-                <select id="rankMode">
-                  <option value="auto">素点から自動</option>
-                  <option value="manual">手動で指定</option>
-                </select>
               </label>
             </div>
 
@@ -845,14 +928,26 @@
         <div class="panel">
           <div class="history-header">
             <h2>局ごとの履歴・累計</h2>
-            <span class="meta" id="historyCount">0局</span>
+            <div class="history-actions">
+              <span class="meta" id="historyCount">0局</span>
+              <button class="btn secondary icon-btn" id="copyLineSummary" type="button" aria-label="LINE文をコピー">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>コピー</span>
+              </button>
+            </div>
           </div>
           <div id="roundHistory"></div>
+          <label class="line-summary-label">LINEに貼る累計
+            <textarea id="lineSummary" class="line-output" readonly></textarea>
+          </label>
         </div>
 
         <div class="panel">
           <div class="history-header">
-            <h2>チップ・LINE出力</h2>
+            <h2>チップ管理</h2>
             <span class="meta">最後にまとめて集計</span>
           </div>
           <div class="chip-grid" id="chipInputs"></div>
@@ -862,14 +957,10 @@
                 <input id="chipValue" type="number" min="0" step="1" value="0" placeholder="例: 100">
               </label>
               <div class="actions">
-                <button class="btn" id="makeLineSummary" type="button">LINE文を作成</button>
-                <button class="btn secondary" id="copyLineSummary" type="button">コピー</button>
+                <button class="btn" id="makeLineSummary" type="button">LINE文を更新</button>
               </div>
               <p class="note">チップは点数とは別に枚数で集計します。単価を入れるとチップ分の金額も出します。</p>
             </div>
-            <label>LINEに貼る結果
-              <textarea id="lineSummary" class="line-output" readonly></textarea>
-            </label>
           </div>
         </div>
       </section>
@@ -1082,7 +1173,6 @@
     const playersEl = document.querySelector("#players");
     const summaryEl = document.querySelector("#summary");
     const detailTable = document.querySelector("#detailTable");
-    const rankMode = document.querySelector("#rankMode");
     const scorePhoto = document.querySelector("#scorePhoto");
     const photoPreview = document.querySelector("#photoPreview");
     const photoImage = document.querySelector("#photoImage");
@@ -1207,23 +1297,10 @@
           <label>素点
             <input class="player-score" data-index="${index}" type="number" step="100" value="${player.score}">
           </label>
-          <label>順位
-            <select class="player-rank" data-index="${index}">
-              ${[1, 2, 3, 4].map(rank => `<option value="${rank}" ${rank === player.rank ? "selected" : ""}>${rank}位</option>`).join("")}
-            </select>
-          </label>
         `;
         playersEl.appendChild(row);
       });
-      syncRankInputs();
       renderChipInputs();
-    }
-
-    function syncRankInputs() {
-      const disabled = rankMode.value === "auto";
-      document.querySelectorAll(".player-rank").forEach(select => {
-        select.disabled = disabled;
-      });
     }
 
     function readPlayers() {
@@ -1231,7 +1308,7 @@
       return names.map((nameInput, index) => ({
         name: nameInput.value.trim() || `${index + 1}人目`,
         score: Number(document.querySelectorAll(".player-score")[index].value || 0),
-        rank: Number(document.querySelectorAll(".player-rank")[index].value)
+        rank: 0
       }));
     }
 
@@ -1389,19 +1466,47 @@
     }
 
     function buildLineSummary() {
-      const rows = aggregateFinalRows();
+      const players = readPlayers();
+      const names = players.map(player => player.name);
+      const chips = readChipCounts();
       const chipValue = Number(chipValueInput.value || 0);
-      const sourceLabel = roundHistory.length ? `${roundHistory.length}局集計` : "最終点数集計";
+      const rounds = roundHistory.length
+        ? roundHistory
+        : [{ name: "今回", results: currentResults }];
+      const totals = new Map(names.map(name => [name, 0]));
+
       const lines = [
-        `麻雀結果 (${sourceLabel})`,
-        ...rows.map((row, index) => {
-          const chipText = `チップ ${row.chips >= 0 ? "+" : ""}${row.chips}枚`;
-          const amountText = chipValue ? ` / ${row.chipAmount >= 0 ? "+" : ""}${row.chipAmount.toLocaleString()}円` : "";
-          return `${index + 1}位 ${row.name}: ${signed(row.pointTotal)}pt / ${chipText}${amountText}`;
-        })
+        "【麻雀結果】",
+        roundHistory.length ? `局ごとの累計 ${roundHistory.length}局` : "最終点数"
       ];
 
-      if (chipValue) lines.push(`チップ単価: ${chipValue.toLocaleString()}円`);
+      rounds.forEach(round => {
+        lines.push("", `■ ${round.name}`);
+        names.forEach(name => {
+          const result = round.results.find(item => item.name === name);
+          const total = result ? result.total : 0;
+          totals.set(name, (totals.get(name) || 0) + total);
+          lines.push(`${name} ${signed(total)}pt`);
+        });
+      });
+
+      lines.push("", "■ 累計");
+      names.forEach(name => {
+        const total = totals.get(name) || 0;
+        lines.push(`${name} ${signed(total)}pt`);
+      });
+
+      if (chips.some(chip => chip !== 0) || chipValue) {
+        lines.push("", "■ チップ");
+        names.forEach((name, index) => {
+          const chip = chips[index] || 0;
+          const amount = chip * chipValue;
+          const amountText = chipValue ? ` (${amount >= 0 ? "+" : ""}${amount.toLocaleString()}円)` : "";
+          lines.push(`${name} ${chip >= 0 ? "+" : ""}${chip}枚${amountText}`);
+        });
+        if (chipValue) lines.push(`単価 ${chipValue.toLocaleString()}円`);
+      }
+
       return lines.join("\n");
     }
 
@@ -1412,12 +1517,19 @@
 
     async function copyLineSummary() {
       updateLineSummary();
+      const copyButton = document.querySelector("#copyLineSummary span");
       try {
         await navigator.clipboard.writeText(lineSummaryEl.value);
       } catch (error) {
         lineSummaryEl.focus();
         lineSummaryEl.select();
         document.execCommand("copy");
+      }
+      if (copyButton) {
+        copyButton.textContent = "コピー済み";
+        setTimeout(() => {
+          copyButton.textContent = "コピー";
+        }, 1400);
       }
     }
 
@@ -1503,9 +1615,7 @@
       const topPrize = ((returned - start) * 4) / 1000;
       const uma = getUma();
       const source = readPlayers();
-      const ranked = rankMode.value === "auto" ? rankByScore(source) : [...source].sort((a, b) => a.rank - b.rank);
-      const manualRanks = new Set(source.map(player => player.rank));
-      const rankWarning = rankMode.value === "manual" && manualRanks.size !== 4;
+      const ranked = rankByScore(source);
 
       const results = ranked.map(player => {
         const base = (player.score - returned) / 1000;
@@ -1544,10 +1654,6 @@
           `).join("")}
         </tbody>
       `;
-
-      if (rankWarning) {
-        summaryEl.insertAdjacentHTML("afterbegin", `<p class="note">順位が重複しています。1位から4位までを一人ずつ指定してください。</p>`);
-      }
 
       renderRoundHistory();
       updateLineSummary();
@@ -1713,16 +1819,19 @@
       const isRon = mode.endsWith("-ron");
       if (row.fu === 20 && (isRon || han === 1)) return "ー";
       if (row.fu === 25 && han === 1) return "ー";
-      return scorePayment(han, row.fu, mode);
+      return scorePayment(han, row.fu, mode)
+        .replace(/点/g, "")
+        .replace(/\sオール/g, "オール")
+        .replace(/\s\/\s/g, "/");
     }
 
     function renderScoreChart(mode = "child-ron") {
       const practicalRows = [
-        { fu: 20, label: "平和ツモ 20符" },
-        { fu: 25, label: "七対子 25符" },
-        { fu: 30, label: "よくある 30符" },
-        { fu: 40, label: "少し符あり 40符" },
-        { fu: 50, label: "高めの基本 50符" }
+        { fu: 20, label: "平和20" },
+        { fu: 25, label: "七対25" },
+        { fu: 30, label: "基本30" },
+        { fu: 40, label: "符あり40" },
+        { fu: 50, label: "高め50" }
       ];
       const hanList = [1, 2, 3, 4];
       const modeLabel = {
@@ -1736,7 +1845,7 @@
         <table class="score-chart" aria-label="${modeLabel}の点数早見表">
           <thead>
             <tr>
-              <th>符</th>
+              <th>符/翻</th>
               ${hanList.map(han => `<th>${han}翻</th>`).join("")}
             </tr>
           </thead>
@@ -1838,8 +1947,6 @@
       ]);
       calculateSettlement();
     });
-    rankMode.addEventListener("change", syncRankInputs);
-
     renderPlayers(defaultPlayers);
     calculateSettlement();
     updateRoundName();
