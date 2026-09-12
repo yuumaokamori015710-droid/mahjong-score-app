@@ -1004,13 +1004,15 @@
                 <select id="roundRate">
                   <option value="100">テンピン</option>
                   <option value="200">テンリャンピン</option>
-                  <option value="300">テンサンピン</option>
+                  <option value="300">テンサン</option>
+                  <option value="400">テンヨン</option>
+                  <option value="500">テンゴ</option>
                 </select>
               </label>
               <button class="btn" id="saveRound" type="button">この局を保存</button>
               <button class="btn secondary" id="clearHistory" type="button">履歴クリア</button>
             </div>
-            <p class="note">計算式: 最終pt = (素点 - 返し点) / 1000 + ウマ + トップ賞。レートはテンピン=100円/pt、テンリャンピン=200円/pt、テンサンピン=300円/ptで換算します。</p>
+            <p class="note">計算式: 最終pt = (素点 - 返し点) / 1000 + ウマ + トップ賞。レートはテンピンからテンゴまで選択して、1ptあたり100円から500円で換算します。</p>
           </div>
 
           <aside class="panel">
@@ -1380,7 +1382,9 @@
       if (rate === 50) return "点5";
       if (rate === 100) return "テンピン";
       if (rate === 200) return "テンリャンピン";
-      if (rate === 300) return "テンサンピン";
+      if (rate === 300) return "テンサン";
+      if (rate === 400) return "テンヨン";
+      if (rate === 500) return "テンゴ";
       return `${rate.toLocaleString()}円/pt`;
     }
 
