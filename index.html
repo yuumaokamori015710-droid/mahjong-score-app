@@ -45,12 +45,14 @@
 
     header {
       background:
-        linear-gradient(135deg, #071f1a, #0d3f31 62%, #12352d);
+        radial-gradient(circle at 78% 20%, rgba(211, 181, 113, .22), transparent 24%),
+        linear-gradient(135deg, #061612, #0c3228 58%, #101a18);
       color: #fff;
-      padding: 28px clamp(16px, 4vw, 44px);
+      padding: 22px clamp(16px, 4vw, 44px);
       position: relative;
       overflow: hidden;
-      border-bottom: 1px solid rgba(255,255,255,.12);
+      border-bottom: 1px solid rgba(211, 181, 113, .24);
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,.08);
     }
 
     header::after {
@@ -58,10 +60,10 @@
       position: absolute;
       inset: 0;
       background-image:
-        linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px),
-        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px);
-      background-size: 46px 46px;
-      opacity: .34;
+        linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 38px 38px;
+      opacity: .28;
       pointer-events: none;
     }
 
@@ -76,39 +78,68 @@
       margin: 0 auto;
     }
 
-    h1 {
-      margin: 0 0 6px;
-      font-size: clamp(26px, 4vw, 42px);
-      letter-spacing: 0;
+    .brand-mark {
+      width: max-content;
+      border: 1px solid rgba(211, 181, 113, .42);
+      border-radius: 999px;
+      padding: 5px 10px;
+      color: #dfc890;
+      font-size: 12px;
       font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      background: rgba(6, 22, 18, .34);
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 4vw, 44px);
+      letter-spacing: 0;
+      font-weight: 900;
     }
 
     .lead {
       margin: 0;
-      color: rgba(255,255,255,.72);
+      color: rgba(255,255,255,.70);
       line-height: 1.7;
       max-width: 640px;
     }
 
     .tiles {
-      display: grid;
-      grid-template-columns: repeat(5, 42px);
-      gap: 8px;
-      filter: drop-shadow(0 18px 22px rgba(0,0,0,.22));
+      display: flex;
+      gap: 7px;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.035)),
+        rgba(3, 13, 11, .22);
+      box-shadow: 0 18px 36px rgba(0,0,0,.24);
+      transform: rotate(-1.5deg);
     }
 
     .tile {
-      width: 42px;
-      height: 54px;
-      border-radius: 6px;
-      background: linear-gradient(180deg, #fff, #f3f0e8);
+      width: 44px;
+      height: 58px;
+      border-radius: 7px;
+      background:
+        linear-gradient(180deg, #fffdf7, #efe8d9 78%, #d8ceb7);
       color: var(--green-2);
       display: grid;
       place-items: center;
-      font-size: 25px;
-      font-weight: 800;
+      font-size: 18px;
+      line-height: 1.02;
+      font-weight: 900;
       border: 1px solid rgba(18, 39, 31, .16);
-      box-shadow: inset 0 -5px 0 rgba(8, 43, 35, .08);
+      box-shadow:
+        inset 0 -5px 0 rgba(8, 43, 35, .09),
+        0 7px 13px rgba(0,0,0,.18);
+      writing-mode: vertical-rl;
+    }
+
+    .tile.red {
+      color: #bf3128;
     }
 
     main {
@@ -911,11 +942,12 @@
     <header>
       <div class="hero">
         <div>
+          <div class="brand-mark">Mahjong Ledger</div>
           <h1>麻雀点数計算</h1>
-          <p class="lead">素点、順位、ウマ、オカをまとめて計算。半荘後の収支差まで一気に見られます。</p>
+          <p class="lead">対局の点差、レート、チップまできれいに締める。</p>
         </div>
         <div class="tiles" aria-hidden="true">
-          <span class="tile">一</span><span class="tile">二</span><span class="tile">三</span><span class="tile">東</span><span class="tile">發</span>
+          <span class="tile">一萬</span><span class="tile">二萬</span><span class="tile">三萬</span><span class="tile">東</span><span class="tile red">發</span>
         </div>
       </div>
     </header>
