@@ -1001,18 +1001,16 @@
                 <input id="roundName" type="text" value="1局目">
               </label>
               <label>この局のレート
-                <input id="roundRate" type="number" min="0" step="10" value="0" list="rateSuggestions" placeholder="例: 100">
-                <datalist id="rateSuggestions">
-                  <option value="30" label="点3"></option>
-                  <option value="50" label="点5"></option>
-                  <option value="100" label="点ピン"></option>
-                  <option value="200" label="点2ピン"></option>
-                </datalist>
+                <select id="roundRate">
+                  <option value="100">テンピン</option>
+                  <option value="200">テンリャンピン</option>
+                  <option value="300">テンサンピン</option>
+                </select>
               </label>
               <button class="btn" id="saveRound" type="button">この局を保存</button>
               <button class="btn secondary" id="clearHistory" type="button">履歴クリア</button>
             </div>
-            <p class="note">計算式: 最終pt = (素点 - 返し点) / 1000 + ウマ + トップ賞。レートは1ptあたりの円で、点ピンは100円/ptです。</p>
+            <p class="note">計算式: 最終pt = (素点 - 返し点) / 1000 + ウマ + トップ賞。レートはテンピン=100円/pt、テンリャンピン=200円/pt、テンサンピン=300円/ptで換算します。</p>
           </div>
 
           <aside class="panel">
@@ -1380,8 +1378,9 @@
       if (!rate) return "なし";
       if (rate === 30) return "点3";
       if (rate === 50) return "点5";
-      if (rate === 100) return "点ピン";
-      if (rate === 200) return "点2ピン";
+      if (rate === 100) return "テンピン";
+      if (rate === 200) return "テンリャンピン";
+      if (rate === 300) return "テンサンピン";
       return `${rate.toLocaleString()}円/pt`;
     }
 
@@ -2092,6 +2091,7 @@
     document.querySelector("#makeLineSummary").addEventListener("click", updateLineSummary);
     document.querySelector("#copyLineSummary").addEventListener("click", copyLineSummary);
     roundRateInput.addEventListener("input", updateLineSummary);
+    roundRateInput.addEventListener("change", updateLineSummary);
     chipValueInput.addEventListener("input", updateLineSummary);
     chipInputsEl.addEventListener("input", event => {
       if (!event.target.classList.contains("chip-count")) return;
