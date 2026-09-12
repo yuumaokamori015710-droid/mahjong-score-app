@@ -372,7 +372,7 @@
 
     .round-tools {
       display: grid;
-      grid-template-columns: minmax(140px, 1fr) auto auto;
+      grid-template-columns: minmax(140px, 1fr) minmax(130px, .45fr) auto auto;
       gap: 10px;
       align-items: end;
       margin-top: 14px;
@@ -425,6 +425,14 @@
     .ledger-table tfoot td {
       font-weight: 800;
       background: #f5faf7;
+    }
+
+    .money {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      margin-top: 2px;
     }
 
     .empty-history {
@@ -960,10 +968,19 @@
               <label>保存する局名
                 <input id="roundName" type="text" value="1局目">
               </label>
+              <label>この局のレート
+                <input id="roundRate" type="number" min="0" step="10" value="0" list="rateSuggestions" placeholder="例: 100">
+                <datalist id="rateSuggestions">
+                  <option value="30" label="点3"></option>
+                  <option value="50" label="点5"></option>
+                  <option value="100" label="点ピン"></option>
+                  <option value="200" label="点2ピン"></option>
+                </datalist>
+              </label>
               <button class="btn" id="saveRound" type="button">この局を保存</button>
               <button class="btn secondary" id="clearHistory" type="button">履歴クリア</button>
             </div>
-            <p class="note">計算式: 最終pt = (素点 - 返し点) / 1000 + ウマ + トップ賞。トップ賞は (返し点 - 配給原点) × 4 / 1000 で自動計算します。</p>
+            <p class="note">計算式: 最終pt = (素点 - 返し点) / 1000 + ウマ + トップ賞。レートは1ptあたりの円で、点ピンは100円/ptです。</p>
           </div>
 
           <aside class="panel">
@@ -1260,6 +1277,7 @@
     const photoStatus = document.querySelector("#photoStatus");
     const detectedList = document.querySelector("#detectedList");
     const roundNameInput = document.querySelector("#roundName");
+    const roundRateInput = document.querySelector("#roundRate");
     const roundHistoryEl = document.querySelector("#roundHistory");
     const historyCountEl = document.querySelector("#historyCount");
     const scoreChartEl = document.querySelector("#scoreChart");
@@ -1318,6 +1336,37 @@
     function signed(value, digits = 1) {
       const fixed = Number(value).toFixed(digits);
       return value > 0 ? `+${fixed}` : fixed;
+    }
+
+    function signedYen(value) {
+      const rounded = Math.round(Number(value) || 0);
+      return `${rounded > 0 ? "+" : ""}${rounded.toLocaleString()}円`;
+    }
+
+    function rateLabel(ratePerPoint) {
+      const rate = Number(ratePerPoint || 0);
+      if (!rate) return "なし";
+      if (rate === 30) return "点3";
+      if (rate === 50) return "点5";
+      if (rate === 100) return "点ピン";
+      if (rate === 200) return "点2ピン";
+      return `${rate.toLocaleString()}円/pt`;
+    }
+
+    function readRoundRate() {
+      return Math.max(0, Number(roundRateInput.value || 0));
+    }
+
+    function formatPointAndMoney(points, ratePerPoint) {
+      const rate = Number(ratePerPoint || 0);
+      const money = points * rate;
+      const moneyText = rate ? `<span class="money">${signedYen(money)}</span>` : "";
+      return `${signed(points)}pt${moneyText}`;
+    }
+
+    function textPointAndMoney(points, ratePerPoint) {
+      const rate = Number(ratePerPoint || 0);
+      return rate ? `${signed(points)}pt / ${signedYen(points * rate)}` : `${signed(points)}pt`;
     }
 
     function escapeHtml(value) {
@@ -1459,9 +1508,12 @@
 
       const names = readPlayers().map(player => player.name);
       const totals = new Map(names.map(name => [name, 0]));
+      const moneyTotals = new Map(names.map(name => [name, 0]));
       roundHistory.forEach(round => {
+        const rate = Number(round.ratePerPoint || 0);
         round.results.forEach(result => {
           totals.set(result.name, (totals.get(result.name) || 0) + result.total);
+          moneyTotals.set(result.name, (moneyTotals.get(result.name) || 0) + (result.total * rate));
         });
       });
 
@@ -1471,6 +1523,7 @@
             <thead>
               <tr>
                 <th>局</th>
+                <th>レート</th>
                 ${names.map(name => `<th>${escapeHtml(name)}</th>`).join("")}
                 <th>操作</th>
               </tr>
@@ -1479,10 +1532,11 @@
               ${roundHistory.map((round, index) => `
                 <tr>
                   <td>${escapeHtml(round.name)}</td>
+                  <td>${escapeHtml(rateLabel(round.ratePerPoint))}</td>
                   ${names.map(name => {
                     const result = round.results.find(item => item.name === name);
                     const total = result ? result.total : 0;
-                    return `<td class="${total >= 0 ? "plus" : "minus"}">${signed(total)}</td>`;
+                    return `<td class="${total >= 0 ? "plus" : "minus"}">${formatPointAndMoney(total, round.ratePerPoint)}</td>`;
                   }).join("")}
                   <td><button class="btn secondary delete-round" data-index="${index}" type="button">削除</button></td>
                 </tr>
@@ -1491,9 +1545,12 @@
             <tfoot>
               <tr>
                 <td>累計</td>
+                <td>点数換算</td>
                 ${names.map(name => {
                   const total = totals.get(name) || 0;
-                  return `<td class="${total >= 0 ? "plus" : "minus"}">${signed(total)}</td>`;
+                  const money = moneyTotals.get(name) || 0;
+                  const moneyText = money ? `<span class="money">${signedYen(money)}</span>` : "";
+                  return `<td class="${total >= 0 ? "plus" : "minus"}">${signed(total)}pt${moneyText}</td>`;
                 }).join("")}
                 <td></td>
               </tr>
@@ -1523,16 +1580,21 @@
     function aggregateFinalRows() {
       const players = readPlayers();
       const totals = new Map(players.map(player => [player.name, 0]));
+      const moneyTotals = new Map(players.map(player => [player.name, 0]));
 
       if (roundHistory.length) {
         roundHistory.forEach(round => {
+          const rate = Number(round.ratePerPoint || 0);
           round.results.forEach(result => {
             totals.set(result.name, (totals.get(result.name) || 0) + result.total);
+            moneyTotals.set(result.name, (moneyTotals.get(result.name) || 0) + (result.total * rate));
           });
         });
       } else {
+        const rate = readRoundRate();
         currentResults.forEach(result => {
           totals.set(result.name, result.total);
+          moneyTotals.set(result.name, result.total * rate);
         });
       }
 
@@ -1541,6 +1603,7 @@
       return players.map((player, index) => ({
         name: player.name,
         pointTotal: totals.get(player.name) || 0,
+        pointAmount: moneyTotals.get(player.name) || 0,
         chips: chips[index] || 0,
         chipAmount: (chips[index] || 0) * chipValue
       })).sort((a, b) => b.pointTotal - a.pointTotal);
@@ -1553,8 +1616,9 @@
       const chipValue = Number(chipValueInput.value || 0);
       const rounds = roundHistory.length
         ? roundHistory
-        : [{ name: "今回", results: currentResults }];
+        : [{ name: "今回", ratePerPoint: readRoundRate(), results: currentResults }];
       const totals = new Map(names.map(name => [name, 0]));
+      const moneyTotals = new Map(names.map(name => [name, 0]));
 
       const lines = [
         "【麻雀結果】",
@@ -1562,19 +1626,24 @@
       ];
 
       rounds.forEach(round => {
-        lines.push("", `■ ${round.name}`);
+        const rate = Number(round.ratePerPoint || 0);
+        const rateText = rate ? ` (${rateLabel(rate)})` : "";
+        lines.push("", `■ ${round.name}${rateText}`);
         names.forEach(name => {
           const result = round.results.find(item => item.name === name);
           const total = result ? result.total : 0;
           totals.set(name, (totals.get(name) || 0) + total);
-          lines.push(`${name} ${signed(total)}pt`);
+          moneyTotals.set(name, (moneyTotals.get(name) || 0) + (total * rate));
+          lines.push(`${name} ${textPointAndMoney(total, rate)}`);
         });
       });
 
       lines.push("", "■ 累計");
       names.forEach(name => {
         const total = totals.get(name) || 0;
-        lines.push(`${name} ${signed(total)}pt`);
+        const money = moneyTotals.get(name) || 0;
+        const moneyText = money ? ` / ${signedYen(money)}` : "";
+        lines.push(`${name} ${signed(total)}pt${moneyText}`);
       });
 
       if (chips.some(chip => chip !== 0) || chipValue) {
@@ -1586,6 +1655,14 @@
           lines.push(`${name} ${chip >= 0 ? "+" : ""}${chip}枚${amountText}`);
         });
         if (chipValue) lines.push(`単価 ${chipValue.toLocaleString()}円`);
+      }
+
+      const rows = aggregateFinalRows();
+      if (rows.some(row => row.pointAmount || row.chipAmount)) {
+        lines.push("", "■ 合計金額");
+        rows.forEach(row => {
+          lines.push(`${row.name} ${signedYen(row.pointAmount + row.chipAmount)}`);
+        });
       }
 
       return lines.join("\n");
@@ -1620,8 +1697,11 @@
       if (currentResults.length !== 4) return;
 
       const name = roundNameInput.value.trim() || nextRoundName();
+      const ratePerPoint = readRoundRate();
       roundHistory.push({
         name,
+        ratePerPoint,
+        rateLabel: rateLabel(ratePerPoint),
         savedAt: new Date().toISOString(),
         results: currentResults.map(result => ({
           name: result.name,
@@ -1979,6 +2059,7 @@
     document.querySelector("#clearHistory").addEventListener("click", clearRoundHistory);
     document.querySelector("#makeLineSummary").addEventListener("click", updateLineSummary);
     document.querySelector("#copyLineSummary").addEventListener("click", copyLineSummary);
+    roundRateInput.addEventListener("input", updateLineSummary);
     chipValueInput.addEventListener("input", updateLineSummary);
     chipInputsEl.addEventListener("input", event => {
       if (!event.target.classList.contains("chip-count")) return;
